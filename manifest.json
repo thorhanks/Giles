@@ -1,0 +1,26 @@
+{
+	"name": "Giles",
+	"version": "0.1",
+	"manifest_version": 2,
+	"author": "Thor Hanks",
+	"description": "Your friendly browser Gerrit helper.",
+
+	"permissions":
+	[
+		"storage",
+		"alarms"
+	],
+
+	"icons":
+	{
+		"16": "logo_16x16.png",
+		"48": "logo_48x48.png",
+		"128": "logo_128x128.png"
+	},
+
+	"background":
+	{
+		"scripts": ["eventPage.js"],
+		"persistent": false
+	}
+}
