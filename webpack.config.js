@@ -6,7 +6,9 @@ module.exports =
 {
 	entry:
 	{
-		eventPage: "./src/eventPage.js"
+		eventPage: "./src/eventPage.js",
+		browserAction: "./src/browserAction/browserAction.jsx",
+		options: "./src/options/options.jsx"
 	},
 	output:
 	{
@@ -33,7 +35,7 @@ module.exports =
 	},
 	plugins:
 	[
-		new webpack.DefinePlugin({ 'process.env.NODE_ENV': JSON.stringify('production') }),
+		new webpack.DefinePlugin({ 'process.env.NODE_ENV': JSON.stringify('development') }),
 		new ExtractTextPlugin('[name].css')
 	],
 	devtool: 'source-map'

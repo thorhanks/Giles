@@ -8,8 +8,19 @@ module.exports = function(grunt)
 			{
 				files:
 				[
-					{ src: ['logo/*.png'], dest: 'publish/', expand: true, flatten: true, filter: 'isFile' },
-					{ src: [ 'manifest.json'], dest: 'publish/', expand: true, flatten: true, filter: 'isFile' }
+					{
+						src:
+						[
+							'logo/*.png',
+							'manifest.json',
+							'src/browserAction/browserAction.html',
+							'src/options/options.html'
+						],
+						dest: 'publish/',
+						expand: true,
+						flatten: true,
+						filter: 'isFile'
+					}
 				]
 			}
 		},
