@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import axios from 'axios';
 
-let gerritData = {};
 const updateDataPeriodInMins = 1;
 let axiosConfig =
 {
@@ -11,33 +10,38 @@ let axiosConfig =
 export const alarmType =
 {
 	updateData: 'giles/alarm/update/data',
-	updateUI: 'giles/alarm/update/UI',
-	unauthorized: 'giles/alarm/unauthorized'
+	updateUI: 'giles/alarm/update/UI'
 };
 let defaultOptions =
 {
-	gerritUrl: 'http://gerrit/'
+	gerritUrl: 'http://gerrit/',
+	allowNotifications: true
 };
 
 (function initialize()
 {
-	// Setup periodic UpdateData alarm and kick off now
-	chrome.alarms.onAlarm.addListener(alarm => handleAlarm(alarm));
-	chrome.alarms.create(alarmType.updateData, { when: Date.now(), periodInMinutes: updateDataPeriodInMins });
-	setDefaultOptions();
+	// Setup options and then finish init
+	setDefaultOptions(() =>
+	{
+		chrome.alarms.onAlarm.addListener(alarm => handleAlarm(alarm));
+		chrome.notifications.onClicked.addListener(handleNotificationClick);
+		chrome.alarms.create(alarmType.updateData, { when: Date.now(), periodInMinutes: updateDataPeriodInMins });
+	});
 })();
 
 function handleAlarm(alarm)
 {
 	if(alarm.name === alarmType.updateData)
+		updateData();
+}
+
+function handleNotificationClick(notificationId)
+{
+	var changesetNum = notificationId.replace(/^.*_/, '');
+	chrome.storage.sync.get('options', ({options}) =>
 	{
-		updateData(() =>
-		{
-			updateBadge();
-			// Notify browser action that it needs to update UI
-			chrome.alarms.create(alarmType.updateUI, { when: Date.now() });
-		});
-	}
+		chrome.tabs.create({ "url": `${options.gerritUrl}#/c/${changesetNum}/` });
+	});
 }
 
 function updateData(callback)
@@ -47,18 +51,37 @@ function updateData(callback)
 		{
 			console.log(acct);
 			let newData = transformData(acct);
-			analyzeAndNotify(gerritData, newData);
 			console.log(newData);
-			gerritData = newData;
-			chrome.storage.sync.set({'gerrit': gerritData}, () => callback());
+
+			let testItem = _.cloneDeep(newData.incoming[0]);
+			testItem.number = 249953331387;
+			newData.incoming.push(testItem);
+
+			chrome.storage.sync.get(['gerrit', 'options'], ({gerrit, options}) =>
+			{
+				if(options && options.allowNotifications)
+					analyzeAndNotify(gerrit, newData);
+				updateBadge(newData);
+
+				chrome.storage.sync.set({'gerrit': newData, 'unauthorized': false}, () =>
+				{
+					chrome.alarms.create(alarmType.updateUI, { when: Date.now() });
+				});
+			});
 		}))
 		.catch(response =>
 		{
-			if(response.status == 403) chrome.alarms.create(alarmType.unauthorized, { when: Date.now() });
+			if(response.status == 403)
+			{
+				chrome.storage.sync.set({'unauthorized': true}, () =>
+				{
+					chrome.alarms.create(alarmType.updateUI, { when: Date.now() });
+				});
+			}
 		});
 }
 
-function updateBadge()
+function updateBadge(gerritData)
 {
 	let count = 0;
 
@@ -78,28 +101,33 @@ function getChangeInfo()
 	return axios.get('changes/?q=is:open+owner:self&q=is:open+reviewer:self+-owner:self&o=DETAILED_LABELS&o=REVIEWED', axiosConfig);
 }
 
-function setDefaultOptions()
+function setDefaultOptions(callback)
 {
 	chrome.storage.sync.get('options', ({options}) =>
 	{
 		if(!options) options = defaultOptions;
 
 		if(!options.gerritUrl) options.gerritUrl = defaultOptions.gerritUrl;
+		if(options.allowNotifications == null) options.allowNotifications = defaultOptions.allowNotifications;
 
-		chrome.storage.sync.set({'options': options});
+		chrome.storage.sync.set({'options': options}, callback);
 	});
 }
 
 function transformData(data)
 {
-	var isPassed = (x, d) =>
+	var isPassed = x =>
 	{
-		let values = _.chain(x.all).forEach(a => {if(a.date) a.date = new Date(a.date);}).sortBy('date').value();
-		let last = x.all.length -1;
+		let values = _.chain(x.all)
+			.filter(a => a.value && a.date)
+			.forEach(a => new Date(a.date))
+			.sortBy('date')
+			.reverse()
+			.value();
 
-		if(x.all.length > 0 && x.all[last].value > 0)
+		if(values.length > 0 && values[0].value > 0)
 			return true;
-		else if(x.all.length > 0 && x.all[last].value < 0)
+		else if(values.length > 0 && values[0].value < 0)
 			return false;
 		else
 			return null;
@@ -118,9 +146,9 @@ function transformData(data)
 		subject: d.subject,
 		submittable: d.submittable,
 		updated: new Date(d.updated),
-		buildPassed: isPassed(d.labels.Build, d),
-		deployPassed: isPassed(d.labels.Deploy, d),
-		reviewPassed: isPassed(d.labels['Code-Review'], d),
+		buildPassed: isPassed(d.labels.Build),
+		deployPassed: isPassed(d.labels.Deploy),
+		reviewPassed: isPassed(d.labels['Code-Review']),
 		reviewed: d.reviewed
 	});
 
@@ -132,5 +160,47 @@ function transformData(data)
 
 function analyzeAndNotify(oldData, newData)
 {
-	
+	let oldIncomingObj = _.keyBy(oldData.incoming, o => o.number);
+	let oldOutgoingObj = _.keyBy(oldData.outgoing, o => o.number);
+
+	_.forEach(newData.incoming, (value, index, incoming) =>
+	{
+		var oldValue = oldIncomingObj[value.number];
+
+		if(!oldValue)
+			notify('New Review Request', 'You\'ve been asked to review a change.', value.subject, value.number);
+		else if(oldValue.reviewed && !oldValue.reviewPassed && !value.reviewed)
+			notify('Failed Review Updated', 'A change you failed in a review has been updated.', value.subject, value.number);
+	});
+
+	_.forEach(newData.outgoing, (value, index, outgoing) =>
+	{
+		var oldValue = oldOutgoingObj[value.number];
+
+		if(!oldValue)
+		{} // do nothing
+		else if(oldValue.buildPassed == null && value.buildPassed === false)
+			notify('Build Failed', 'One of your changes failed to build.', value.subject, value.number);
+		else if(oldValue.deployPassed == null && value.deployPassed === false)
+			notify('Deploy Failed', 'One of your changes failed to deploy.', value.subject, value.number);
+		else if(oldValue.reviewPassed == null && value.reviewPassed === false)
+			notify('Review Failed', 'One of your changes has failed review.', value.subject, value.number);
+		else if(!oldValue.reviewPassed && value.reviewPassed === true)
+			notify('Review Passed', 'One of your changes has passed review.', value.subject, value.number);
+	});
+}
+
+function notify(title, message, contextMessage, changesetNum)
+{
+	var notificationId = _.uniqueId('giles') + '_' + changesetNum;
+	chrome.notifications.create(notificationId,
+	{
+		"type": 'basic',
+		"iconUrl": 'logo_128x128.png',
+		"title": title,
+		"message": message,
+		"contextMessage": contextMessage,
+		"isClickable": true,
+		"eventTime": Date.now()
+	});
 }

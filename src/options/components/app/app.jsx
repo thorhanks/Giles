@@ -24,11 +24,11 @@ export default class App extends Component
 	constructor(props)
 	{
 		super(props);
-		this.state = {};
+		this.state = { options: {}, saveIndicatorText: null };
 	}
 	componentDidMount()
 	{
-		chrome.storage.sync.get('options', data => this.setState({'options': data.options}));
+		chrome.storage.sync.get('options', ({options}) => this.setState({'options': options}));
 	}
 	saveChange(key, value)
 	{
@@ -46,16 +46,19 @@ export default class App extends Component
 	}
 	render()
 	{
-		let options = (this.state && this.state.options) ? this.state.options : {};
+		let { options, saveIndicatorText } = this.state;
 
 		return (
 			<div className='options-container'>
 				{
-					this.state.saveIndicatorText &&
-					<div className='save-indicator'>{this.state.saveIndicatorText}</div>
+					saveIndicatorText &&
+					<div className='save-indicator'>{saveIndicatorText}</div>
 				}
 				<label>
-					Gerrit URL: <input value={options.gerritUrl} onInput={e => this.saveChange('gerritUrl', e.target.value)}/>
+					Gerrit URL: <input value={options.gerritUrl} onInput={e => this.saveChange('gerritUrl', e.target.value.trim())}/>
+				</label>
+				<label>
+					Show Notifications: <input type='checkbox' checked={options.allowNotifications} onChange={e => this.saveChange('allowNotifications', e.target.checked)} />
 				</label>
 			</div>
 		);

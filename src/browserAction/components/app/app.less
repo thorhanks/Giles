@@ -1,0 +1,121 @@
+.browser-action-container
+{
+	padding: 5px;
+	font-family: "Roboto";
+
+	.unauthorized-container
+	{
+		width: 250px;
+		text-align: center;
+
+		h1
+		{
+			font-size: 18px;
+			font-weight: 400;
+			color: rgba(0,0,0,0.54);
+			margin: 5px 0 0 0;
+		}
+		p
+		{
+			color: rgba(0,0,0,0.87);
+			a
+			{
+				text-decoration: none;
+				color: #03418F;
+			}
+			a:hover
+			{
+				text-decoration: underline;;
+			}
+		}
+	}
+
+	.changeset-container
+	{
+		h1
+		{
+			font-weight: 400;
+			font-size: 20px;
+			color: rgba(0,0,0,0.87);
+			margin: 0;
+			padding: 6px 6px 10px 6px;
+
+			div.icon
+			{
+				display: inline-block;
+				float: right;
+				color: rgba(0,0,0,0.54);
+				cursor: pointer;
+			}
+		}
+
+		table:first-of-type
+		{
+			margin: 0;
+		}
+		table
+		{
+			margin: 20px 0 0 0;
+			width: 100%;
+			border-collapse: collapse;
+
+			thead
+			{
+				tr
+				{
+					th:first-child
+					{
+						text-align: left;
+						width: 90%;
+					}
+					th
+					{
+						font-size: 13px;
+						font-weight: 500;
+						color: rgba(0,0,0,0.54);
+						padding: 6px 6px;
+					}
+				}
+			}
+			tbody
+			{
+				tr
+				{
+					td:first-child
+					{
+						text-align: left;
+					}
+					td.nothing
+					{
+						color: rgba(0,0,0,0.54);
+						white-space: nowrap;
+					}
+					td
+					{
+						font-size: 13px;
+						font-weight: 400;
+						color: rgba(0,0,0,0.87);
+						padding: 6px 6px;
+						text-align: center;
+
+						a
+						{
+							display: block;
+							white-space: nowrap;
+							text-overflow: ellipsis;
+							max-width: 300px;
+							overflow: hidden;
+							text-decoration: none;
+							font-size: 13px;
+							color: #03418F;
+						}
+						a:hover
+						{
+							text-decoration: underline;;
+						}
+					}
+				}
+			}
+		}
+	}
+}
