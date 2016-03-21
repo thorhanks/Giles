@@ -49,16 +49,14 @@ function updateData(callback)
 	axios.all([getChangeInfo()])
 		.then(axios.spread((acct, perms) =>
 		{
-			console.log(acct);
 			let newData = transformData(acct);
-			console.log(newData);
-
-			let testItem = _.cloneDeep(newData.incoming[0]);
-			testItem.number = 249953331387;
-			newData.incoming.push(testItem);
 
 			chrome.storage.sync.get(['gerrit', 'options'], ({gerrit, options}) =>
 			{
+				if(!gerrit) gerrit = {};
+				if(!gerrit.incoming) gerrit.incoming = [];
+				if(!gerrit.outgoing) gerrit.outgoing = [];
+
 				if(options && options.allowNotifications)
 					analyzeAndNotify(gerrit, newData);
 				updateBadge(newData);
@@ -167,7 +165,7 @@ function analyzeAndNotify(oldData, newData)
 	{
 		var oldValue = oldIncomingObj[value.number];
 
-		if(!oldValue)
+		if(!oldValue && !value.reviewed)
 			notify('New Review Request', 'You\'ve been asked to review a change.', value.subject, value.number);
 		else if(oldValue.reviewed && !oldValue.reviewPassed && !value.reviewed)
 			notify('Failed Review Updated', 'A change you failed in a review has been updated.', value.subject, value.number);
