@@ -1,17 +1,8 @@
 import _ from 'lodash';
 import axios from 'axios';
+import { alarmUpdateData, alarmUpdateUI } from './alarms.js';
 
 const updateDataPeriodInMins = 1;
-let axiosConfig =
-{
-	baseURL: 'http://gerrit',
-	headers: {'X-Requested-With': 'XMLHttpRequest'}
-};
-export const alarmType =
-{
-	updateData: 'giles/alarm/update/data',
-	updateUI: 'giles/alarm/update/UI'
-};
 let defaultOptions =
 {
 	gerritUrl: 'http://gerrit/',
@@ -25,13 +16,13 @@ let defaultOptions =
 	{
 		chrome.alarms.onAlarm.addListener(alarm => handleAlarm(alarm));
 		chrome.notifications.onClicked.addListener(handleNotificationClick);
-		chrome.alarms.create(alarmType.updateData, { when: Date.now(), periodInMinutes: updateDataPeriodInMins });
+		chrome.alarms.create(alarmUpdateData, { when: Date.now(), periodInMinutes: updateDataPeriodInMins });
 	});
 })();
 
 function handleAlarm(alarm)
 {
-	if(alarm.name === alarmType.updateData)
+	if(alarm.name === alarmUpdateData)
 		updateData();
 }
 
@@ -41,18 +32,23 @@ function handleNotificationClick(notificationId)
 	chrome.storage.sync.get('options', ({options}) =>
 	{
 		chrome.tabs.create({ "url": `${options.gerritUrl}#/c/${changesetNum}/` });
+		chrome.windows.getCurrent(null, win =>
+		{
+			chrome.windows.update(win.id, { focused: true });
+		});
 	});
 }
 
 function updateData(callback)
 {
-	axios.all([getChangeInfo()])
-		.then(axios.spread((acct, perms) =>
-		{
-			let newData = transformData(acct);
-
-			chrome.storage.sync.get(['gerrit', 'options'], ({gerrit, options}) =>
+	chrome.storage.sync.get(['gerrit', 'options'], ({gerrit, options}) =>
+	{
+		axios.all([getChangeInfo(options.gerritUrl)])
+			.then(axios.spread((acct, perms) =>
 			{
+				console.log(acct);
+				let newData = transformData(acct);
+
 				if(!gerrit) gerrit = {};
 				if(!gerrit.incoming) gerrit.incoming = [];
 				if(!gerrit.outgoing) gerrit.outgoing = [];
@@ -63,20 +59,20 @@ function updateData(callback)
 
 				chrome.storage.sync.set({'gerrit': newData, 'unauthorized': false}, () =>
 				{
-					chrome.alarms.create(alarmType.updateUI, { when: Date.now() });
+					chrome.alarms.create(alarmUpdateUI, { when: Date.now() });
 				});
-			});
-		}))
-		.catch(response =>
-		{
-			if(response.status == 403)
+			}))
+			.catch(response =>
 			{
-				chrome.storage.sync.set({'unauthorized': true}, () =>
+				if(response.status == 403)
 				{
-					chrome.alarms.create(alarmType.updateUI, { when: Date.now() });
-				});
-			}
-		});
+					chrome.storage.sync.set({'unauthorized': true}, () =>
+					{
+						chrome.alarms.create(alarmUpdateUI, { when: Date.now() });
+					});
+				}
+			});
+	});
 }
 
 function updateBadge(gerritData)
@@ -94,9 +90,13 @@ function updateBadge(gerritData)
 	chrome.browserAction.setBadgeText({ text: count });
 }
 
-function getChangeInfo()
+function getChangeInfo(gerritUrl)
 {
-	return axios.get('changes/?q=is:open+owner:self&q=is:open+reviewer:self+-owner:self&o=DETAILED_LABELS&o=REVIEWED', axiosConfig);
+	return axios.get('/changes/?q=is:open+owner:self&q=is:open+reviewer:self+-owner:self&o=DETAILED_LABELS&o=DETAILED_ACCOUNTS&o=REVIEWED&o=MESSAGES',
+	{
+		baseURL: gerritUrl.replace(/\/*$/, ''),
+		headers: {'X-Requested-With': 'XMLHttpRequest'}
+	});
 }
 
 function setDefaultOptions(callback)

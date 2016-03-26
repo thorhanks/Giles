@@ -21,7 +21,7 @@
 			a
 			{
 				text-decoration: none;
-				color: #03418F;
+				color: #1976D2;
 			}
 			a:hover
 			{
@@ -46,6 +46,11 @@
 				float: right;
 				color: rgba(0,0,0,0.54);
 				cursor: pointer;
+				margin-left: 8px;
+			}
+			div.icon:hover
+			{
+				color: #1976D2;
 			}
 		}
 
@@ -59,23 +64,21 @@
 			width: 100%;
 			border-collapse: collapse;
 
-			thead
+			th:first-child
 			{
-				tr
-				{
-					th:first-child
-					{
-						text-align: left;
-						width: 90%;
-					}
-					th
-					{
-						font-size: 13px;
-						font-weight: 500;
-						color: rgba(0,0,0,0.54);
-						padding: 6px 6px;
-					}
-				}
+				text-align: left;
+				width: 90%;
+			}
+			th
+			{
+				font-size: 13px;
+				font-weight: 500;
+				color: rgba(0,0,0,0.54);
+				padding: 6px 6px;
+			}
+			th.incoming
+			{
+				padding-top: 15px;
 			}
 			tbody
 			{
@@ -107,7 +110,7 @@
 							overflow: hidden;
 							text-decoration: none;
 							font-size: 13px;
-							color: #03418F;
+							color: #1976D2;
 						}
 						a:hover
 						{

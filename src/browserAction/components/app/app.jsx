@@ -5,12 +5,8 @@ import ClassNames from 'classnames';
 import Check from 'react-icons/lib/md/check';
 import Clear from 'react-icons/lib/md/clear';
 import Settings from 'react-icons/lib/md/settings';
-
-export const alarmType =
-{
-	updateData: 'giles/alarm/update/data',
-	updateUI: 'giles/alarm/update/UI'
-};
+import Home from 'react-icons/lib/md/home';
+import { alarmUpdateData, alarmUpdateUI } from '../../../alarms.js';
 
 const noOutgoingText =
 [
@@ -53,19 +49,8 @@ let ChangesetRow = ({change, options}) =>
 			{ change.deployPassed === true && <Check style={{color:'#76A01D'}}/> }
 			{ change.deployPassed === false && <Clear style={{color:'#DC4A2E'}}/> }
 		</td>
+		<td></td>
 	</tr>
-);
-
-let ChangesetHeader = ({title}) =>
-(
-	<thead>
-		<tr>
-			<th>{title}</th>
-			<th>B</th>
-			<th>CR</th>
-			<th>D</th>
-		</tr>
-	</thead>
 );
 
 export default class App extends Component
@@ -82,10 +67,11 @@ export default class App extends Component
 	}
 	componentDidMount()
 	{
+		chrome.alarms.create(alarmUpdateData, { when: Date.now() });
 		this.getData();
 		chrome.alarms.onAlarm.addListener(alarm =>
 		{
-			if(alarm.name === alarmType.updateUI)
+			if(alarm.name === alarmUpdateUI)
 				this.getData();
 		});
 	}
@@ -95,6 +81,10 @@ export default class App extends Component
 		{
 			this.setState({gerrit, options, unauthorized});
 		});
+	}
+	openGerrit(gerritUrl)
+	{
+		chrome.tabs.create({ "url": `${gerritUrl}` });
 	}
 	render()
 	{
@@ -120,23 +110,40 @@ export default class App extends Component
 							<div className='icon' onClick={e => chrome.runtime.openOptionsPage()} title='Options'>
 								<Settings/>
 							</div>
+							<div className='icon' onClick={e => this.openGerrit(options.gerritUrl)} title='Open Gerrit'>
+								<Home/>
+							</div>
 						</h1>
 						<table>
-							<ChangesetHeader title='Outgoing Reviews'/>
+							<thead>
+								<tr>
+									<th>Outgoing Reviews</th>
+									<th>B</th>
+									<th>CR</th>
+									<th>D</th>
+									<th>U</th>
+								</tr>
+							</thead>
 							{
 								(!gerrit.outgoing || gerrit.outgoing.length == 0) &&
-								<tbody><tr><td colspan='4' className='nothing'>{_.sample(noOutgoingText)}</td></tr></tbody>
+								<tbody><tr><td colSpan='5' className='nothing'>{_.sample(noOutgoingText)}</td></tr></tbody>
 							}
 							{
 								(gerrit.outgoing && gerrit.outgoing.length > 0) &&
 								<tbody>{gerrit.outgoing.map(c => <ChangesetRow change={c} options={options} key={c.number} />)}</tbody>
 							}
-						</table>
-						<table>
-							<ChangesetHeader title='Incoming Reviews'/>
+							<thead>
+								<tr>
+									<th className='incoming'>Incoming Reviews</th>
+									<th>B</th>
+									<th>CR</th>
+									<th>D</th>
+									<th>U</th>
+								</tr>
+							</thead>
 							{
 								(!gerrit.incoming || gerrit.incoming.length == 0) &&
-								<tbody><tr><td colspan='4' className='nothing'>{_.sample(noIncomingText)}</td></tr></tbody>
+								<tbody><tr><td colSpan='5' className='nothing'>{_.sample(noIncomingText)}</td></tr></tbody>
 							}
 							{
 								(gerrit.incoming && gerrit.incoming.length > 0) &&
