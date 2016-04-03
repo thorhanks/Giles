@@ -46,7 +46,6 @@ function updateData(callback)
 		axios.all([getChangeInfo(options.gerritUrl)])
 			.then(axios.spread((acct, perms) =>
 			{
-				console.log(acct);
 				let newData = transformData(acct);
 
 				if(!gerrit) gerrit = {};
@@ -114,23 +113,6 @@ function setDefaultOptions(callback)
 
 function transformData(data)
 {
-	var isPassed = x =>
-	{
-		let values = _.chain(x.all)
-			.filter(a => a.value && a.date)
-			.forEach(a => new Date(a.date))
-			.sortBy('date')
-			.reverse()
-			.value();
-
-		if(values.length > 0 && values[0].value > 0)
-			return true;
-		else if(values.length > 0 && values[0].value < 0)
-			return false;
-		else
-			return null;
-	};
-
 	var getChangesetData = d =>
 	({
 		number: d._number,
@@ -144,9 +126,13 @@ function transformData(data)
 		subject: d.subject,
 		submittable: d.submittable,
 		updated: new Date(d.updated),
-		buildPassed: isPassed(d.labels.Build),
-		deployPassed: isPassed(d.labels.Deploy),
-		reviewPassed: isPassed(d.labels['Code-Review']),
+		labels:
+		{
+			build: getLabelData(d.labels.Build, d.messages),
+			deploy: getLabelData(d.labels.Deploy, d.messages),
+			review: getLabelData(d.labels['Code-Review'], d.messages),
+			unitTest: getLabelData(d.labels['UnitTest'], d.messages)
+		},
 		reviewed: d.reviewed
 	});
 
@@ -154,6 +140,28 @@ function transformData(data)
 		outgoing: _.chain(data.data[0]).map(getChangesetData).sortBy('created').value(),
 		incoming: _.chain(data.data[1]).map(getChangesetData).sortBy('created').value()
 	};
+}
+
+function getLabelData(label, messages)
+{
+	let values = _.chain(label.all)
+		.filter(a => a.value && a.date)
+		.forEach(a => new Date(a.date))
+		.sortBy('date')
+		.reverse()
+		.value();
+
+	var passed = null;
+
+	if(values.length && values[0].value > 0)
+		var passed = true;
+	else if(values.length && values[0].value < 0)
+		var passed = false;
+
+	var message = (values.length) ? _.find(messages, m => m.date === values[0].date) : '';
+	if(message) message = message.message.replace(/^(.|\n)*(?=http)/, '');
+
+	return { passed, message };
 }
 
 function analyzeAndNotify(oldData, newData)
@@ -167,7 +175,7 @@ function analyzeAndNotify(oldData, newData)
 
 		if(!oldValue && !value.reviewed)
 			notify('New Review Request', 'You\'ve been asked to review a change.', value.subject, value.number);
-		else if(oldValue.reviewed && !oldValue.reviewPassed && !value.reviewed)
+		else if(oldValue.reviewed && !oldValue.labels.review.passed && !value.reviewed)
 			notify('Failed Review Updated', 'A change you failed in a review has been updated.', value.subject, value.number);
 	});
 
@@ -177,13 +185,13 @@ function analyzeAndNotify(oldData, newData)
 
 		if(!oldValue)
 		{} // do nothing
-		else if(oldValue.buildPassed == null && value.buildPassed === false)
+		else if(oldValue.labels.build.passed == null && value.labels.build.passed === false)
 			notify('Build Failed', 'One of your changes failed to build.', value.subject, value.number);
-		else if(oldValue.deployPassed == null && value.deployPassed === false)
+		else if(oldValue.labels.deploy.passed == null && value.labels.deploy.passed === false)
 			notify('Deploy Failed', 'One of your changes failed to deploy.', value.subject, value.number);
-		else if(oldValue.reviewPassed == null && value.reviewPassed === false)
+		else if(oldValue.labels.review.passed == null && value.labels.review.passed === false)
 			notify('Review Failed', 'One of your changes has failed review.', value.subject, value.number);
-		else if(!oldValue.reviewPassed && value.reviewPassed === true)
+		else if(!oldValue.labels.review.passed && value.labels.review.passed === true)
 			notify('Review Passed', 'One of your changes has passed review.', value.subject, value.number);
 	});
 }

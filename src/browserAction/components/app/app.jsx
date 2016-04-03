@@ -31,6 +31,14 @@ const noIncomingText =
 	'Nothing...Now you can get some work done'
 ];
 
+let ChangesetIcon = ({passed, href}) =>
+(
+	<a className='browser-action-label-icon' href={href} target='_blank'>
+	{ passed === true && <Check style={{color:'#76A01D'}}/> }
+	{ passed === false && <Clear style={{color:'#DC4A2E'}}/> }
+	</a>
+);
+
 let ChangesetRow = ({change, options}) =>
 (
 	<tr>
@@ -38,18 +46,29 @@ let ChangesetRow = ({change, options}) =>
 			<a href={`${options.gerritUrl}#/c/${change.number}/`} target='_blank' title={change.subject}>{change.subject}</a>
 		</td>
 		<td>
-			{ change.buildPassed === true && <Check style={{color:'#76A01D'}}/> }
-			{ change.buildPassed === false && <Clear style={{color:'#DC4A2E'}}/> }
+		{
+			change.labels.build.passed !== null &&
+			<ChangesetIcon passed={change.labels.build.passed} href={change.labels.build.message} />
+		}
 		</td>
 		<td>
-			{ change.reviewPassed === true && <Check style={{color:'#76A01D'}}/> }
-			{ change.reviewPassed === false && <Clear style={{color:'#DC4A2E'}}/> }
+		{
+			change.labels.review.passed !== null &&
+			<ChangesetIcon passed={change.labels.review.passed} href={`${options.gerritUrl}#/c/${change.number}/`} />
+		}
 		</td>
 		<td>
-			{ change.deployPassed === true && <Check style={{color:'#76A01D'}}/> }
-			{ change.deployPassed === false && <Clear style={{color:'#DC4A2E'}}/> }
+		{
+			change.labels.deploy.passed !== null &&
+			<ChangesetIcon passed={change.labels.deploy.passed} href={change.labels.deploy.message} />
+		}
 		</td>
-		<td></td>
+		<td>
+		{
+			change.labels.unitTest.passed !== null &&
+			<ChangesetIcon passed={change.labels.unitTest.passed} href={change.labels.unitTest.message} />
+		}
+		</td>
 	</tr>
 );
 
@@ -133,8 +152,8 @@ export default class App extends Component
 								<tbody>{gerrit.outgoing.map(c => <ChangesetRow change={c} options={options} key={c.number} />)}</tbody>
 							}
 							<thead>
-								<tr>
-									<th className='incoming'>Incoming Reviews</th>
+								<tr className='incoming'>
+									<th>Incoming Reviews</th>
 									<th>B</th>
 									<th>CR</th>
 									<th>D</th>
