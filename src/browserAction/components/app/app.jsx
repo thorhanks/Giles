@@ -137,10 +137,10 @@ export default class App extends Component
 							<thead>
 								<tr>
 									<th>Outgoing Reviews</th>
-									<th>B</th>
-									<th>CR</th>
-									<th>D</th>
-									<th>U</th>
+									<th title='Build'>B</th>
+									<th title='Code Review'>R</th>
+									<th title='Deploy'>D</th>
+									<th title='Unit Tests'>T</th>
 								</tr>
 							</thead>
 							{
@@ -154,10 +154,10 @@ export default class App extends Component
 							<thead>
 								<tr className='incoming'>
 									<th>Incoming Reviews</th>
-									<th>B</th>
-									<th>CR</th>
-									<th>D</th>
-									<th>U</th>
+									<th title='Build'>B</th>
+									<th title='Code Review'>R</th>
+									<th title='Deploy'>D</th>
+									<th title='Unit Tests'>T</th>
 								</tr>
 							</thead>
 							{
