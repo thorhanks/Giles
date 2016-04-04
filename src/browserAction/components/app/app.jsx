@@ -47,25 +47,25 @@ let ChangesetRow = ({change, options}) =>
 		</td>
 		<td>
 		{
-			change.labels.build.passed !== null &&
+			change.labels.build && change.labels.build.passed !== null &&
 			<ChangesetIcon passed={change.labels.build.passed} href={change.labels.build.message} />
 		}
 		</td>
 		<td>
 		{
-			change.labels.review.passed !== null &&
+			change.labels.review && change.labels.review.passed !== null &&
 			<ChangesetIcon passed={change.labels.review.passed} href={`${options.gerritUrl}#/c/${change.number}/`} />
 		}
 		</td>
 		<td>
 		{
-			change.labels.deploy.passed !== null &&
+			change.labels.deploy && change.labels.deploy.passed !== null &&
 			<ChangesetIcon passed={change.labels.deploy.passed} href={change.labels.deploy.message} />
 		}
 		</td>
 		<td>
 		{
-			change.labels.unitTest.passed !== null &&
+			change.labels.unitTest && change.labels.unitTest.passed !== null &&
 			<ChangesetIcon passed={change.labels.unitTest.passed} href={change.labels.unitTest.message} />
 		}
 		</td>
