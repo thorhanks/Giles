@@ -98,6 +98,11 @@ export default class App extends Component
 	{
 		chrome.storage.sync.get(['unauthorized', 'gerrit', 'options'], ({unauthorized, gerrit, options}) =>
 		{
+			if(!gerrit) gerrit = {};
+			if(!gerrit.incoming) gerrit.incoming = [];
+			if(!gerrit.outgoing) gerrit.outgoing = [];
+			if(!options) options = {};
+
 			this.setState({gerrit, options, unauthorized});
 		});
 	}

@@ -43,17 +43,18 @@ function updateData(callback)
 {
 	chrome.storage.sync.get(['gerrit', 'options'], ({gerrit, options}) =>
 	{
+		if(!gerrit) gerrit = {};
+		if(!gerrit.incoming) gerrit.incoming = [];
+		if(!gerrit.outgoing) gerrit.outgoing = [];
+
 		axios.all([getChangeInfo(options.gerritUrl)])
 			.then(axios.spread((acct, perms) =>
 			{
 				let newData = transformData(acct);
 
-				if(!gerrit) gerrit = {};
-				if(!gerrit.incoming) gerrit.incoming = [];
-				if(!gerrit.outgoing) gerrit.outgoing = [];
-
 				if(options && options.allowNotifications)
 					analyzeAndNotify(gerrit, newData);
+
 				updateBadge(newData);
 
 				chrome.storage.sync.set({'gerrit': newData, 'unauthorized': false}, () =>
@@ -128,22 +129,28 @@ function transformData(data)
 		updated: new Date(d.updated),
 		labels:
 		{
-			build: getLabelData(d.labels.Build, d.messages),
-			deploy: getLabelData(d.labels.Deploy, d.messages),
-			review: getLabelData(d.labels['Code-Review'], d.messages),
-			unitTest: getLabelData(d.labels['UnitTest'], d.messages)
+			build: getLabelData(_.has(d, 'labels.Build') ? d.labels.Build : null, d.messages),
+			deploy: getLabelData(_.has(d, 'labels.Deploy') ? d.labels.Deploy : null, d.messages),
+			review: getLabelData(_.has(d, 'labels["Code-Review"]') ? d.labels['Code-Review'] : null, d.messages),
+			unitTest: getLabelData(_.has(d, 'labels.UnitTest') ? d.labels['UnitTest'] : null, d.messages)
 		},
 		reviewed: d.reviewed
 	});
 
+	var outgoing = _.chain(data.data[0]).map(getChangesetData).sortBy('created').value();
+	var incoming = _.chain(data.data[1]).map(getChangesetData).sortBy('created').value();
+
 	return {
-		outgoing: _.chain(data.data[0]).map(getChangesetData).sortBy('created').value(),
-		incoming: _.chain(data.data[1]).map(getChangesetData).sortBy('created').value()
+		outgoing: outgoing || [],
+		incoming: incoming || []
 	};
 }
 
 function getLabelData(label, messages)
 {
+	if(!label)
+		return { passed: null, message: '' };
+	
 	let values = _.chain(label.all)
 		.filter(a => a.value && a.date)
 		.forEach(a => new Date(a.date))
@@ -175,7 +182,7 @@ function analyzeAndNotify(oldData, newData)
 
 		if(!oldValue && !value.reviewed)
 			notify('New Review Request', 'You\'ve been asked to review a change.', value.subject, value.number);
-		else if(oldValue.reviewed && !oldValue.labels.review.passed && !value.reviewed)
+		else if(oldValue && oldValue.reviewed && !oldValue.labels.review.passed && !value.reviewed)
 			notify('Failed Review Updated', 'A change you failed in a review has been updated.', value.subject, value.number);
 	});
 

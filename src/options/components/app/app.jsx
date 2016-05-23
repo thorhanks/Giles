@@ -60,6 +60,9 @@ export default class App extends Component
 				<label>
 					Show Notifications: <input type='checkbox' checked={options.allowNotifications} onChange={e => this.saveChange('allowNotifications', e.target.checked)} />
 				</label>
+				<label>
+					Debug: <span className='link' onClick={e => chrome.storage.sync.clear()}>Clear Storage</span>
+				</label>
 			</div>
 		);
 	}
