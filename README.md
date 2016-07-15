@@ -4,6 +4,8 @@
 
 The indubitably necessary Chrome Extension for Gerrit.
 
+[Get It Here](https://chrome.google.com/webstore/detail/giles/oifcikhcngnienbngfljdegmkingpemo)
+
 #Features
 - Desktop notifications for important updates such as
 	- New incoming review request
